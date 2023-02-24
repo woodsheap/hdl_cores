@@ -9,7 +9,8 @@ entity top is
 	port(
 		input: in signed(17 downto 0);
 		output: out signed(17 downto 0);
-		en: in  std_logic;
+		en: in std_logic;
+		dr: out std_logic;
 		clr: in std_logic;
 		clk: in std_logic
 	);
@@ -24,7 +25,8 @@ architecture func of top is
 	port(
 		input: in signed(data_width-1 downto 0);
 		output: out signed(data_width-1 downto 0);
-		en: in  std_logic;
+		en: in std_logic;
+		dr: out std_logic;
 		clr: in std_logic;
 		clk: in std_logic
 	);
@@ -40,6 +42,7 @@ begin
 		input => input,
 		output => output,
 		en => en,
+		dr => dr,
 		clr => clr,
 		clk => clk
 	);

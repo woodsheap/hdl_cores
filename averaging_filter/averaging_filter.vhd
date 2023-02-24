@@ -17,15 +17,14 @@ entity averaging_filter is
 	port(
 		input: in signed(data_width-1 downto 0);
 		output: out signed(data_width-1 downto 0);
-		en: in  std_logic;
+		en: in std_logic;
+		dr: out std_logic;
 		clr: in std_logic;
 		clk: in std_logic
 	);
 end entity;
 
 architecture func of averaging_filter is
-	--constant overflow_buffer: integer :=
-	--    integer(ceil(log2(averaging_amount)));
 	type data_array_type is
 	    array (0 to averaging_amount-1) of
 	    signed(data_width-1 downto 0);
@@ -37,16 +36,18 @@ begin
 		if (clr='1') then
 			data_array <= (others => (others => '0'));
 			running_sum <= (others => '0');
+			dr <= '0';
 		elsif  (clk='1' and clk'event) then
 			if (en='1') then
 				running_sum <= running_sum -
 				    resize(data_array(averaging_amount-1),
-				                      running_sum'length) +
+				           running_sum'length) +
 				    resize(input, running_sum'length);
 				data_array(1 to averaging_amount-1) <=
 				    data_array(0 to averaging_amount-2);
 				data_array(0) <= input;
 			end if;
+			dr <= en;
 		end if;
 	end process;
 	output <= running_sum(data_width + overflow_buffer - 1
