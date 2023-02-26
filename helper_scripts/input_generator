@@ -1,0 +1,149 @@
+#!/usr/bin/octave -qf
+% SPDX-FileCopyrightText: 2023 Brian Woods
+% SPDX-License-Identifier: GPL-2.0-or-later
+
+% simple octave executable script to generate input files for filter testing
+
+signals = {"impulse", "sine", "cosine", "square"};
+signal = NaN;
+freq = NaN;
+width = NaN;
+signednesses = {"unsigned", "signed"};
+signedness = NaN;
+samples = NaN;
+
+function print_help(signals)
+	printf("%s <signal> <freq> <width> <signedess> <samples> <filename>\n", ...
+	       program_name());
+	printf("where:\n");
+	printf("\tsignal: the signal type:");
+	for i = 1:length(signals)
+		switch(i)
+		case 1
+			printf(" %s", signals{i})
+		otherwise
+			printf(", %s", signals{i})
+		endswitch
+	endfor
+	printf("\n");
+	printf("\tfreq: freqency in sample length\n");
+	printf("\twidth: bit width of the output\n");
+	printf("\tsignedness: it is either: signed, unsigned\n");
+	printf("\tsamples: how many samples to generate\n");
+	printf("\tfilename: output filename\n");
+endfunction
+
+% input parsing
+arg_list = argv ();
+
+if (nargin != 6)
+	printf("Too few or too many arguements given.\n");
+	print_help(signals)
+	quit;
+endif
+
+for i = 1:length(signals)
+	if strcmp(arg_list{1},signals{i})
+		signal = i;
+		break
+	endif
+endfor
+if isnan(signal)
+	printf("can't parse <signal>.\n");
+	print_help(signals)
+	exit;
+endif
+
+freq = abs(real(str2double(arg_list{2})));
+if isnan(freq)
+	printf("Can't parse <freq>.\n");
+	print_help(signals)
+	exit;
+endif
+
+width = abs(floor(real(str2double(arg_list{3}))));
+if isnan(width)
+	printf("Can't parse <width>.\n");
+	print_help(signals)
+	exit;
+endif
+
+for i = 1:length(signednesses)
+	if strcmp(arg_list{4},signednesses{i})
+		signedness = i;
+		break
+	endif
+endfor
+if isnan(signedness)
+	printf("can't parse <signedness>.\n");
+	print_help(signals)
+	exit;
+endif
+
+samples = abs(floor(real(str2double(arg_list{5}))));
+if isnan(width)
+	printf("Can't parse <width>.\n");
+	print_help(signals)
+	exit;
+endif
+
+filename = arg_list{6};
+fid = fopen (filename, "w");
+% end input parsing
+
+% calc ranges
+if signedness == 1
+	range_max = 2**width - 1;
+	range_min = 0;
+else
+	range_max = 2**(width-1) -1;
+	%makes things easier not to use the extra negative number
+	range_min = -range_max;
+endif
+
+% actual singal generation
+switch (signal)
+case 1  % impulse
+	for i = 0:samples-1
+		switch (i)
+		case 0
+			fprintf(fid, "%d\n", range_max);
+		otherwise
+			fprintf(fid, "%d\n", 0);
+		endswitch;
+	endfor
+case {2, 3} % sine and cosine
+	if (signedness == 1)  % unsigned
+		sine_amp = range_max/2
+		sine_off = sine_amp
+	else % signed
+		sine_amp = range_max
+		sine_off = 0
+	endif
+	if (signal == 2)
+		sine_phase = 0;
+	else % cosine needs a phase offset
+		sine_phase = pi/2
+	endif
+	sine_freq = (2*pi)/freq
+	for i = 0:samples-1
+		fprintf(fid, "%d\n",
+		        floor(sine_amp*sin(sine_freq*i+sine_phase)
+		              + sine_off +.5));
+	endfor
+case 4 % square
+	freq_half = freq/2;
+	for i = 0:samples-1
+		period = rem(i, freq);
+		if (floor(period/freq_half) == 0) %first half
+			fprintf(fid, "%d\n", range_max);
+		else
+			fprintf(fid, "%d\n", range_min);
+		endif
+	endfor
+otherwise
+	printf("can't determine how to generate the signal, exiting\n");
+	exit;
+endswitch
+
+fclose (fid);
