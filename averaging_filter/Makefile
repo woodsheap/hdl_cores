@@ -4,6 +4,7 @@
 # this is for ghdl-gcc, I've not tested it on ghdl-llvm but it will not
 # work with ghdl-mcode
 
+# use simulation_octave.vhd for file I/O
 SRC=simulation.vhd top.vhd averaging_filter.vhd
 OBJ=$(SRC:.vhd=.o)
 TOP=simulation
@@ -12,7 +13,7 @@ WAVE_DUMP=$(TOP).ghw
 WAVE_CONF=$(TOP).gtkw
 WORKLIB=work
 FLAGS=--std=08 --work=$(WORKLIB)
-TIME=1us
+TIME=12us
 
 .PHONY: all clean sim
 
