@@ -1,0 +1,98 @@
+#!/usr/bin/octave -qf
+% SPDX-FileCopyrightText: 2023 Brian Woods
+% SPDX-License-Identifier: GPL-2.0-or-later
+
+% simple octave executable script to generate freq graph from filter output
+
+% impulse_file;
+%graph_file
+freq = NaN;
+width = NaN;
+signednesses = {"unsigned", "signed"};
+signedness = NaN;
+
+function print_help()
+	printf("%s <impulse_file> <sample_freq> <width> <signedess> <graph_file>\n", ...
+	       program_name());
+	printf("where:\n");
+	printf("\tinput_file: input filename of output of filter\n");
+	printf("\tsample_freq: freqency in sample length\n");
+	printf("\twidth: bit width of the output\n");
+	printf("\tsignedness: it is either: signed, unsigned\n");
+	printf("\tgraph_file: output graph filename\n");
+endfunction
+
+% input parsing
+arg_list = argv ();
+
+if (nargin != 5)
+	printf("Too few or too many arguements given.\n");
+	print_help()
+	quit;
+endif
+
+freq = abs(real(str2double(arg_list{2})));
+if isnan(freq)
+	printf("Can't parse <freq>.\n");
+	print_help()
+	exit;
+endif
+
+width = abs(floor(real(str2double(arg_list{3}))));
+if isnan(width)
+	printf("Can't parse <width>.\n");
+	print_help()
+	exit;
+endif
+
+for i = 1:length(signednesses)
+	if strcmp(arg_list{4},signednesses{i})
+		signedness = i;
+		break
+	endif
+endfor
+if isnan(signedness)
+	printf("can't parse <signedness>.\n");
+	print_help()
+	exit;
+endif
+
+impulse_file = arg_list{1};
+graph_file = arg_list{5};
+% end input parsing
+
+% calc ranges
+if signedness == 1
+	range_max = 2**width - 1;
+	range_min = 0;
+else
+	range_max = 2**(width-1) -1;
+	%makes things easier not to use the extra negative number
+	range_min = -range_max;
+endif
+
+% read in input
+impulse_data =	dlmread(impulse_file);
+if (exist("impulse_data", "var") != 1)
+	printf("Can't read input data file\n");
+	exit;
+endif
+
+impulse_data = impulse_data/range_max;
+
+% referenced from matlab site
+impulse_len = length(impulse_data);
+impulse_fft = fft(impulse_data);
+
+freq_full = abs(impulse_fft/impulse_len);
+freq_half = freq_full(1:(impulse_len/2)+1);
+freq_half(2:end-1) = 2*freq_half(2:end-1);
+
+fig = figure('visible','off');
+freq_list = freq*(0:(impulse_len/2))/impulse_len;
+
+plot(freq_list,freq_half);
+title("frequency responce of filter output");
+xlabel("frequency (Hz)");
+ylabel("amplitude x(k)");
+print(graph_file);
